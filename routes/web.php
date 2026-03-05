@@ -16,3 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::view('/institucional/politica-privacidade', 'institucional.politica-privacidade');
+Route::view('/institucional/termos-servicos', 'institucional.termos-servicos');
+Route::view('/institucional/exclusao-dados-usuario', 'institucional.exclusao-dados-usuario');
