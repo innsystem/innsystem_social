@@ -31,4 +31,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'meta' => [
+        'app_id'        => env('META_APP_ID'),
+        'app_secret'    => env('META_APP_SECRET'),
+        'redirect_uri'  => env('META_REDIRECT_URI'),
+        'api_version'   => env('META_API_VERSION', 'v25.0'),
+        'system_token'  => env('META_SYSTEM_TOKEN'),
+        'instagram_id'  => env('META_INSTAGRAM_ID'),
+    ],
+
 ];

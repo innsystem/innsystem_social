@@ -77,7 +77,6 @@
     <p>Se você tiver dúvidas sobre esta Política de Privacidade ou sobre o uso das suas informações, fale conosco:</p>
     <ul class="mb-3">
         <li>E-mail: <a href="mailto:contato@innsystem.com.br">contato@innsystem.com.br</a></li>
-        <li>Telefone: +55 22 99882-3298</li>
         <li>Site: <a href="https://innsystem.com.br" target="_blank" rel="noopener noreferrer">https://innsystem.com.br</a></li>
     </ul>
 
