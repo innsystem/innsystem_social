@@ -5,7 +5,7 @@
         $metaTitle = trim($__env->yieldContent('meta_title', 'InnSystem Social'));
         $metaDescription = trim($__env->yieldContent('meta_description', 'Páginas institucionais da InnSystem Social.'));
         $currentUrl = url()->current();
-        $ogImage = asset(str_replace(' ', '%20', 'identidade visual_preto.png'));
+        $ogImage = asset(str_replace(' ', '%20', 'identidade_visual_preto.png'));
     @endphp
 
     <meta charset="UTF-8">
@@ -54,7 +54,7 @@
     <header class="py-4">
         <div class="container text-center">
             <a href="{{ url('/') }}" class="d-inline-block" aria-label="InnSystem Social">
-                <img src="{{ asset(str_replace(' ', '%20', 'identidade visual_preto.png')) }}" alt="Logo InnSystem Social" class="brand-logo">
+                <img src="{{ asset(str_replace(' ', '%20', 'identidade_visual_preto.png')) }}" alt="Logo InnSystem Social" class="brand-logo">
             </a>
         </div>
     </header>
