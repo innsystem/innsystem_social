@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidade - nativeapi_ofcluiz</title>
+    <title>Política de Privacidade - Innsystem Social</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #222; }
         h1, h2 { color: #111; }
@@ -12,7 +12,7 @@
 </head>
 <body>
     <main class="container">
-        <h1>Política de Privacidade - nativeapi_ofcluiz</h1>
+        <h1>Política de Privacidade - Innsystem Social</h1>
 
         <p>
             Esta Política de Privacidade descreve como coletamos, usamos e protegemos as informações
