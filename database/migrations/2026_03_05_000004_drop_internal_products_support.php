@@ -8,23 +8,31 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('social_posts', 'product_id')) {
+            Schema::table('social_posts', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('product_id');
+            });
+        }
+
+        Schema::dropIfExists('products');
+    }
+
+    public function down(): void
+    {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2)->nullable();
-            $table->string('image_path')->nullable()->comment('Caminho no storage público');
-            $table->string('image_url')->nullable()->comment('URL externa alternativa');
+            $table->string('image_path')->nullable();
+            $table->string('image_url')->nullable();
             $table->boolean('active')->default(true);
             $table->timestamps();
-
-            $table->index('tenant_id');
         });
-    }
 
-    public function down(): void
-    {
-        Schema::dropIfExists('products');
+        Schema::table('social_posts', function (Blueprint $table) {
+            $table->foreignId('product_id')->nullable()->after('tenant_id')->constrained('products')->nullOnDelete();
+        });
     }
 };

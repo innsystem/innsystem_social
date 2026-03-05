@@ -22,7 +22,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Produto</th>
+                            <th class="ps-4">Produto Externo</th>
                             <th>Plataforma</th>
                             <th>Status</th>
                             <th>Legenda</th>
@@ -32,7 +32,12 @@
                     <tbody>
                         @foreach($posts as $post)
                         <tr>
-                            <td class="ps-4">{{ $post->product->name ?? '—' }}</td>
+                            <td class="ps-4">
+                                {{ $post->external_product_id ?: '—' }}
+                                @if($post->source_domain)
+                                    <div class="small text-muted">{{ $post->source_domain }}</div>
+                                @endif
+                            </td>
                             <td>
                                 @if($post->platform === 'instagram')
                                     <span class="badge badge-platform-instagram">

@@ -46,10 +46,7 @@
             <i class="bi bi-share"></i> Redes Sociais
         </a>
 
-        <div class="nav-label">Produtos</div>
-        <a href="{{ route('tenant.products.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 {{ request()->routeIs('tenant.products.*') ? 'active' : '' }}">
-            <i class="bi bi-box-seam"></i> Produtos
-        </a>
+        <div class="nav-label">Integração</div>
         <a href="{{ route('tenant.posts.history') }}" class="d-flex align-items-center gap-2 px-3 py-2 {{ request()->routeIs('tenant.posts.*') ? 'active' : '' }}">
             <i class="bi bi-clock-history"></i> Histórico de Posts
         </a>

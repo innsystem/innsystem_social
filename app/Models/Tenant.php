@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class Tenant extends Model
 {
@@ -14,6 +16,8 @@ class Tenant extends Model
     protected $fillable = [
         'name',
         'slug',
+        'api_key',
+        'api_secret',
         'domain',
         'email',
         'phone',
@@ -34,11 +38,6 @@ class Tenant extends Model
         return $this->hasOne(MetaToken::class);
     }
 
-    public function products(): HasMany
-    {
-        return $this->hasMany(Product::class);
-    }
-
     public function socialPosts(): HasMany
     {
         return $this->hasMany(SocialPost::class);
@@ -47,5 +46,26 @@ class Tenant extends Model
     public function isMetaConnected(): bool
     {
         return $this->metaToken()->exists();
+    }
+
+    /**
+     * Gera novas credenciais para consumo da API (OpenCart).
+     *
+     * @return array{api_key: string, api_secret_plain: string}
+     */
+    public function regenerateApiCredentials(): array
+    {
+        $apiKey = 'ins_' . Str::lower(Str::random(24));
+        $apiSecretPlain = Str::random(48);
+
+        $this->forceFill([
+            'api_key' => $apiKey,
+            'api_secret' => Hash::make($apiSecretPlain),
+        ])->save();
+
+        return [
+            'api_key' => $apiKey,
+            'api_secret_plain' => $apiSecretPlain,
+        ];
     }
 }

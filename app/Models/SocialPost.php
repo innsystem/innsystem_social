@@ -12,7 +12,8 @@ class SocialPost extends Model
 
     protected $fillable = [
         'tenant_id',
-        'product_id',
+        'external_product_id',
+        'source_domain',
         'platform',
         'meta_post_id',
         'caption',
@@ -29,11 +30,6 @@ class SocialPost extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
     }
 
     public function isPublished(): bool

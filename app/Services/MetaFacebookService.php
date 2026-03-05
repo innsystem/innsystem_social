@@ -39,7 +39,8 @@ class MetaFacebookService
 
         $log = SocialPost::create([
             'tenant_id'  => $tenantId,
-            'product_id' => $product['product_id'] ?? null,
+            'external_product_id' => $product['external_product_id'] ?? null,
+            'source_domain' => $product['source_domain'] ?? null,
             'platform'   => 'facebook',
             'caption'    => $product['caption'],
             'image_url'  => $product['image_url'],

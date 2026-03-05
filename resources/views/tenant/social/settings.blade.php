@@ -6,7 +6,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h1 class="h4 mb-1">Redes Sociais</h1>
-        <p class="text-muted small mb-0">Conecte sua conta Facebook/Instagram para publicar produtos.</p>
+        <p class="text-muted small mb-0">Conecte sua conta Meta. As publicações chegam via API do módulo OpenCart.</p>
     </div>
 </div>
 
@@ -125,7 +125,7 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Produto</th>
+                                <th>Produto Externo</th>
                                 <th>Plataforma</th>
                                 <th>Status</th>
                                 <th>Data</th>
@@ -134,7 +134,12 @@
                         <tbody>
                             @foreach($recentPosts as $post)
                             <tr>
-                                <td>{{ $post->product->name ?? '—' }}</td>
+                                <td>
+                                    {{ $post->external_product_id ?: '—' }}
+                                    @if($post->source_domain)
+                                        <div class="small text-muted">{{ $post->source_domain }}</div>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($post->platform === 'instagram')
                                         <span class="badge badge-platform-instagram">Instagram</span>

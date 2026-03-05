@@ -18,7 +18,6 @@ class SocialSettingsController extends Controller
         $metaToken = MetaToken::where('tenant_id', $tenantId)->first();
 
         $recentPosts = SocialPost::where('tenant_id', $tenantId)
-            ->with('product:id,name')
             ->latest()
             ->take(10)
             ->get();

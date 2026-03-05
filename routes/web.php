@@ -1,30 +1,44 @@
 <?php
 
+use App\Http\Controllers\Admin\TenantManagementController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MetaAuthController;
+use App\Http\Controllers\MetaPublicAuthController;
 use App\Http\Controllers\MetaWebhookController;
-use App\Http\Controllers\ProductPublishController;
 use App\Http\Controllers\Tenant\PostHistoryController;
-use App\Http\Controllers\Tenant\ProductController;
 use App\Http\Controllers\Tenant\SocialSettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Públicas
+| Rotas Públicas Institucionais
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
-// Páginas institucionais
 Route::view('/institucional/politica-privacidade', 'institucional.politica-privacidade');
 Route::view('/institucional/termos-servicos', 'institucional.termos-servicos');
 Route::view('/institucional/exclusao-dados-usuario', 'institucional.exclusao-dados-usuario');
 
 /*
 |--------------------------------------------------------------------------
-| Webhook da Meta (sem autenticação — validado por verify_token)
+| Autenticação Web
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+});
+
+Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| Webhook da Meta
 |--------------------------------------------------------------------------
 */
 Route::get('/meta/webhook', [MetaWebhookController::class, 'verify'])->name('meta.webhook.verify');
@@ -32,11 +46,40 @@ Route::post('/meta/webhook', [MetaWebhookController::class, 'handle'])->name('me
 
 /*
 |--------------------------------------------------------------------------
-| Rotas do Painel (requer autenticação + tenant)
+| OAuth Público via Link Assinado (OpenCart)
+|--------------------------------------------------------------------------
+*/
+Route::get('/connect/meta/{tenant}', [MetaPublicAuthController::class, 'redirect'])
+    ->middleware('signed')
+    ->name('meta.public.redirect');
+Route::get('/connect/meta/callback', [MetaPublicAuthController::class, 'callback'])
+    ->name('meta.public.callback');
+Route::get('/connect/meta/select-page', [MetaPublicAuthController::class, 'selectPage'])
+    ->name('meta.public.select-page');
+Route::post('/connect/meta/select-page', [MetaPublicAuthController::class, 'savePage'])
+    ->name('meta.public.save-page');
+Route::get('/connect/meta/done', [MetaPublicAuthController::class, 'done'])
+    ->name('meta.public.done');
+
+/*
+|--------------------------------------------------------------------------
+| Painel Admin
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/tenants', [TenantManagementController::class, 'index'])->name('tenants.index');
+    Route::get('/tenants/create', [TenantManagementController::class, 'create'])->name('tenants.create');
+    Route::post('/tenants', [TenantManagementController::class, 'store'])->name('tenants.store');
+    Route::post('/tenants/{tenant}/regenerate-credentials', [TenantManagementController::class, 'regenerateCredentials'])
+        ->name('tenants.regenerate-credentials');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Painel Tenant (apenas configurações e histórico)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'tenant'])->group(function () {
-
     // ── OAuth Meta ────────────────────────────────────────────────────────
     Route::get('/auth/meta/redirect', [MetaAuthController::class, 'redirect'])
         ->name('meta.redirect');
@@ -58,25 +101,7 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('/social/settings', [SocialSettingsController::class, 'index'])
         ->name('meta.social.settings');
 
-    // ── Produtos ──────────────────────────────────────────────────────────
-    Route::get('/products', [ProductController::class, 'index'])
-        ->name('tenant.products.index');
-
-    Route::post('/products/{product}/publish', [ProductPublishController::class, 'publish'])
-        ->name('tenant.products.publish');
-
-    Route::get('/products/publish-history', [ProductPublishController::class, 'history'])
-        ->name('tenant.products.publish-history');
-
     // ── Histórico de Posts ────────────────────────────────────────────────
     Route::get('/posts/history', [PostHistoryController::class, 'index'])
         ->name('tenant.posts.history');
-
-    // ── Logout ────────────────────────────────────────────────────────────
-    Route::post('/logout', function () {
-        auth()->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        return redirect('/');
-    })->name('logout');
 });

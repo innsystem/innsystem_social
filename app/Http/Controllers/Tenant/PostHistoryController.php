@@ -11,7 +11,6 @@ class PostHistoryController extends Controller
     public function index(Request $request)
     {
         $posts = SocialPost::where('tenant_id', auth()->user()->tenant_id)
-            ->with('product:id,name')
             ->latest()
             ->paginate(20);
 
