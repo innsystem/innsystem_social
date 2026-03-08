@@ -190,8 +190,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Imagem</label>
-                            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
-                            <div class="form-text">Formatos: JPG, PNG, WEBP (máx. 10MB).</div>
+                            <input type="file" name="image" class="form-control" accept="image/*" required>
+                            <div class="form-text">Formatos aceitos: JPG, JPEG, PNG, WEBP, GIF, BMP (máx. 10MB). O sistema converte para JPG automaticamente.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Legenda</label>

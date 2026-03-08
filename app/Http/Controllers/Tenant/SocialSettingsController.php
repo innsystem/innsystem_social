@@ -8,9 +8,11 @@ use App\Models\SocialPost;
 use App\Services\MetaFacebookService;
 use App\Services\MetaInstagramService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SocialSettingsController extends Controller
 {
@@ -65,18 +67,22 @@ class SocialSettingsController extends Controller
             'caption' => ['nullable', 'string', 'max:2200'],
             'platforms' => ['required', 'array', 'min:1'],
             'platforms.*' => ['in:instagram,facebook'],
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif,bmp', 'max:10240'],
         ]);
 
-        $selectedPlatforms = $data['platforms'];
-        $uploadedExtension = strtolower((string) $request->file('image')->getClientOriginalExtension());
-
-        // A API de publicação no Instagram Graph exige imagem em JPEG para image_url.
-        if (in_array('instagram', $selectedPlatforms, true) && ! in_array($uploadedExtension, ['jpg', 'jpeg'], true)) {
-            return back()->with('error', 'Para publicar no Instagram, envie imagem em JPG/JPEG. PNG/WEBP podem falhar na API da Meta.');
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagejpeg')) {
+            return back()->with('error', 'A extensão GD do PHP não está habilitada no servidor. Ative-a para converter imagens em JPG.');
         }
 
-        $path = $request->file('image')->store('social-posts/tenant-' . $tenantId, 'public');
+        $uploadedFile = $request->file('image');
+        $uploadedExtension = strtolower((string) $uploadedFile->getClientOriginalExtension());
+
+        // Converte qualquer formato aceito para JPG para maior compatibilidade com Instagram Graph API.
+        $path = $this->convertImageToJpegAndStore($uploadedFile, $tenantId);
+        if (! $path) {
+            return back()->with('error', 'Falha ao converter a imagem para JPG. Tente outra imagem.');
+        }
+
         $relativePublicPath = Storage::url($path);
         $appUrl = rtrim(config('app.url') ?: $request->getSchemeAndHttpHost(), '/');
         $publicImageUrl = str_starts_with($relativePublicPath, 'http')
@@ -106,6 +112,7 @@ class SocialSettingsController extends Controller
             'tenant_id' => $tenantId,
             'image_url' => $publicImageUrl,
             'image_extension' => $uploadedExtension,
+            'converted_jpg_path' => $path,
             'platforms' => $data['platforms'],
             'results' => $results,
         ]);
@@ -166,5 +173,54 @@ class SocialSettingsController extends Controller
         }
 
         return [$pageProfile, $instagramProfile];
+    }
+
+    private function convertImageToJpegAndStore(UploadedFile $file, int $tenantId): ?string
+    {
+        try {
+            $contents = file_get_contents($file->getRealPath());
+            if ($contents === false) {
+                return null;
+            }
+
+            $source = imagecreatefromstring($contents);
+            if (! $source) {
+                return null;
+            }
+
+            $width = imagesx($source);
+            $height = imagesy($source);
+
+            // Fundo branco para preservar legibilidade em imagens com transparência.
+            $canvas = imagecreatetruecolor($width, $height);
+            $white = imagecolorallocate($canvas, 255, 255, 255);
+            imagefill($canvas, 0, 0, $white);
+            imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height);
+
+            ob_start();
+            imagejpeg($canvas, null, 90);
+            $jpegBinary = ob_get_clean();
+
+            imagedestroy($source);
+            imagedestroy($canvas);
+
+            if (! is_string($jpegBinary) || $jpegBinary === '') {
+                return null;
+            }
+
+            $fileName = Str::uuid()->toString() . '.jpg';
+            $path = 'social-posts/tenant-' . $tenantId . '/' . $fileName;
+            Storage::disk('public')->put($path, $jpegBinary);
+
+            return $path;
+        } catch (\Throwable $e) {
+            Log::error('Image conversion to JPG failed', [
+                'error' => $e->getMessage(),
+                'file_name' => $file->getClientOriginalName(),
+                'mime' => $file->getMimeType(),
+            ]);
+
+            return null;
+        }
     }
 }
