@@ -381,13 +381,6 @@
                             <div class="small text-white opacity-50">limite: 50/dia</div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="p-3 rounded-3" style="background:#1877f2;">
-                            <div class="display-6 fw-bold text-white">{{ $dailyFacebook }}</div>
-                            <div class="small text-white opacity-75 mt-1">Facebook</div>
-                            <div class="small text-white opacity-50">limite: 50/dia</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
