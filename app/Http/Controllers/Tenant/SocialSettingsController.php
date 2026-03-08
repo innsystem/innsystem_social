@@ -10,6 +10,7 @@ use App\Services\MetaInstagramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class SocialSettingsController extends Controller
 {
@@ -67,8 +68,21 @@ class SocialSettingsController extends Controller
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
+        $selectedPlatforms = $data['platforms'];
+        $uploadedExtension = strtolower((string) $request->file('image')->getClientOriginalExtension());
+
+        // A API de publicação no Instagram Graph exige imagem em JPEG para image_url.
+        if (in_array('instagram', $selectedPlatforms, true) && ! in_array($uploadedExtension, ['jpg', 'jpeg'], true)) {
+            return back()->with('error', 'Para publicar no Instagram, envie imagem em JPG/JPEG. PNG/WEBP podem falhar na API da Meta.');
+        }
+
         $path = $request->file('image')->store('social-posts/tenant-' . $tenantId, 'public');
-        $publicImageUrl = asset('storage/' . $path);
+        $relativePublicPath = Storage::url($path);
+        $appUrl = rtrim(config('app.url') ?: $request->getSchemeAndHttpHost(), '/');
+        $publicImageUrl = str_starts_with($relativePublicPath, 'http')
+            ? $relativePublicPath
+            : $appUrl . '/' . ltrim($relativePublicPath, '/');
+
         $caption = $data['caption'] ?: 'Publicação enviada pelo painel InnSystem Social.';
 
         $payload = [
@@ -91,6 +105,7 @@ class SocialSettingsController extends Controller
         Log::info('Manual publish request finished', [
             'tenant_id' => $tenantId,
             'image_url' => $publicImageUrl,
+            'image_extension' => $uploadedExtension,
             'platforms' => $data['platforms'],
             'results' => $results,
         ]);
