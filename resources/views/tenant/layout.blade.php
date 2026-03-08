@@ -28,7 +28,7 @@
 <body>
 <div class="d-flex">
     {{-- Sidebar --}}
-    <nav class="sidebar d-flex flex-column p-3 gap-1" style="position:sticky;top:0;height:100vh;overflow-y:auto;">
+    <nav class="sidebar d-flex flex-column p-3 gap-1" style="position:sticky;top:0;height:100vh;overflow-y:scroll;">
         <a href="{{ url('/') }}" class="d-block text-center py-3 mb-2">
             <img src="{{ asset(str_replace(' ', '%20', 'identidade_visual_branco.png')) }}"
                  class="brand-logo" alt="InnSystem Social">
