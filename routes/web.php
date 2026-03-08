@@ -94,6 +94,8 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     // ── Redes Sociais ─────────────────────────────────────────────────────
     Route::get('/social/settings', [SocialSettingsController::class, 'index'])
         ->name('meta.social.settings');
+    Route::post('/social/manual-publish', [SocialSettingsController::class, 'manualPublish'])
+        ->name('meta.social.manual-publish');
 
     // ── Histórico de Posts ────────────────────────────────────────────────
     Route::get('/posts/history', [PostHistoryController::class, 'index'])

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MetaToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MetaAuthController extends Controller
@@ -62,6 +63,7 @@ class MetaAuthController extends Controller
             'redirect_uri'  => config('services.meta.redirect_uri'),
             'code'          => $request->code,
         ]);
+        $this->logGraphPayload('auth.callback.short_token', $tokenResp->json() ?? [], ['access_token']);
 
         if ($tokenResp->failed() || ! isset($tokenResp->json()['access_token'])) {
             return redirect()->route('meta.social.settings')
@@ -77,6 +79,7 @@ class MetaAuthController extends Controller
             'client_secret'     => config('services.meta.app_secret'),
             'fb_exchange_token' => $shortToken,
         ]);
+        $this->logGraphPayload('auth.callback.long_token', $llResp->json() ?? [], ['access_token', 'expires_in']);
 
         $llData    = $llResp->json();
         $longToken = $llData['access_token'];
@@ -87,6 +90,7 @@ class MetaAuthController extends Controller
             'access_token' => $longToken,
             'fields'       => 'id,name',
         ]);
+        $this->logGraphPayload('auth.callback.me', $meResp->json() ?? [], ['id', 'name']);
         $metaUserId = $meResp->json()['id'] ?? null;
 
         // Buscar páginas do usuário com dados do Instagram vinculado
@@ -94,6 +98,11 @@ class MetaAuthController extends Controller
             'access_token' => $longToken,
             'fields'       => 'id,name,access_token,instagram_business_account',
         ]);
+        $this->logGraphPayload(
+            'auth.callback.pages',
+            $pagesResp->json() ?? [],
+            ['data']
+        );
 
         $pages = $pagesResp->json()['data'] ?? [];
 
@@ -157,6 +166,7 @@ class MetaAuthController extends Controller
                 'expires_at'            => now()->addSeconds($expiresIn),
             ]
         );
+        $this->logGraphPayload('auth.save_page.selected_page', $selected, ['id', 'name', 'access_token']);
 
         session()->forget(['meta_long_token', 'meta_expires_in', 'meta_user_id', 'meta_pages', 'meta_oauth_state']);
 
@@ -173,5 +183,40 @@ class MetaAuthController extends Controller
 
         return redirect()->route('meta.social.settings')
             ->with('success', 'Conta Meta desconectada com sucesso.');
+    }
+
+    private function logGraphPayload(string $stage, array $payload, array $expectedFields = []): void
+    {
+        $missing = [];
+
+        foreach ($expectedFields as $field) {
+            if (! array_key_exists($field, $payload)) {
+                $missing[] = $field;
+            }
+        }
+
+        Log::info('Meta Graph payload', [
+            'stage' => $stage,
+            'missing_fields' => $missing,
+            'payload' => $this->sanitizeSensitive($payload),
+        ]);
+    }
+
+    private function sanitizeSensitive(array $payload): array
+    {
+        $sensitiveKeys = [
+            'access_token',
+            'client_secret',
+            'app_secret',
+            'token',
+        ];
+
+        array_walk_recursive($payload, function (&$value, $key) use ($sensitiveKeys): void {
+            if (in_array(strtolower((string) $key), $sensitiveKeys, true) && is_string($value)) {
+                $value = substr($value, 0, 8) . '...';
+            }
+        });
+
+        return $payload;
     }
 }

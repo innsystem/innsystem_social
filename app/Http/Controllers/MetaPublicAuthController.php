@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -65,6 +66,7 @@ class MetaPublicAuthController extends Controller
             'redirect_uri' => route('meta.public.callback'),
             'code' => $request->code,
         ]);
+        $this->logGraphPayload('public.callback.short_token', $tokenResp->json() ?? [], ['access_token']);
 
         if ($tokenResp->failed() || ! isset($tokenResp->json()['access_token'])) {
             return redirect()->route('meta.public.done')->with('error', 'Falha ao obter token.');
@@ -78,6 +80,7 @@ class MetaPublicAuthController extends Controller
             'client_secret' => config('services.meta.app_secret'),
             'fb_exchange_token' => $shortToken,
         ]);
+        $this->logGraphPayload('public.callback.long_token', $llResp->json() ?? [], ['access_token', 'expires_in']);
 
         $longToken = $llResp->json()['access_token'] ?? null;
         $expiresIn = $llResp->json()['expires_in'] ?? 5184000;
@@ -90,12 +93,14 @@ class MetaPublicAuthController extends Controller
             'access_token' => $longToken,
             'fields' => 'id',
         ]);
+        $this->logGraphPayload('public.callback.me', $meResp->json() ?? [], ['id']);
         $metaUserId = $meResp->json()['id'] ?? null;
 
         $pagesResp = Http::get('https://graph.facebook.com/me/accounts', [
             'access_token' => $longToken,
             'fields' => 'id,name,access_token,instagram_business_account',
         ]);
+        $this->logGraphPayload('public.callback.pages', $pagesResp->json() ?? [], ['data']);
         $pages = $pagesResp->json()['data'] ?? [];
 
         if (empty($pages)) {
@@ -150,6 +155,7 @@ class MetaPublicAuthController extends Controller
                 'expires_at' => now()->addSeconds(session('meta_public_expires_in', 5184000)),
             ]
         );
+        $this->logGraphPayload('public.save_page.selected_page', $selected, ['id', 'name', 'access_token']);
 
         session()->forget([
             'meta_public_state',
@@ -165,5 +171,40 @@ class MetaPublicAuthController extends Controller
     public function done(): View
     {
         return view('public.meta-done');
+    }
+
+    private function logGraphPayload(string $stage, array $payload, array $expectedFields = []): void
+    {
+        $missing = [];
+
+        foreach ($expectedFields as $field) {
+            if (! array_key_exists($field, $payload)) {
+                $missing[] = $field;
+            }
+        }
+
+        Log::info('Meta Graph payload', [
+            'stage' => $stage,
+            'missing_fields' => $missing,
+            'payload' => $this->sanitizeSensitive($payload),
+        ]);
+    }
+
+    private function sanitizeSensitive(array $payload): array
+    {
+        $sensitiveKeys = [
+            'access_token',
+            'client_secret',
+            'app_secret',
+            'token',
+        ];
+
+        array_walk_recursive($payload, function (&$value, $key) use ($sensitiveKeys): void {
+            if (in_array(strtolower((string) $key), $sensitiveKeys, true) && is_string($value)) {
+                $value = substr($value, 0, 8) . '...';
+            }
+        });
+
+        return $payload;
     }
 }
