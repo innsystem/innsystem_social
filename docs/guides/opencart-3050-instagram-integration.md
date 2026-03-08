@@ -127,10 +127,10 @@ Resposta de sucesso:
 ## 5) Como o modulo OpenCart 3.0.5.0 deve funcionar
 
 ## 5.1 Estrutura recomendada (padrao OpenCart)
-- `admin/controller/extension/module/innsystem_instagram.php`
-- `admin/model/setting/innsystem_instagram.php`
-- `admin/view/template/extension/module/innsystem_instagram.twig`
-- `admin/language/pt-br/extension/module/innsystem_instagram.php`
+- `admin/controller/extension/module/innsystem_social.php`
+- `admin/model/setting/innsystem_social.php`
+- `admin/view/template/extension/module/innsystem_social.twig`
+- `admin/language/pt-br/extension/module/innsystem_social.php`
 - (Opcional) `admin/controller/catalog/product.php` override via OCMOD para adicionar botao de publicar
 - arquivo OCMOD em `install.xml` para inserir botao na listagem de produtos.
 

@@ -6,6 +6,7 @@ use App\Models\MetaToken;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -19,12 +20,12 @@ class MetaPublicAuthController extends Controller
             abort(401, 'Link expirado ou inválido.');
         }
 
-        $state = Str::random(40);
-
-        session([
-            'meta_public_state' => $state,
-            'meta_public_tenant_id' => $tenant->id,
-        ]);
+        $state = Str::random(48);
+        Cache::put(
+            $this->stateCacheKey($state),
+            ['tenant_id' => $tenant->id],
+            now()->addMinutes(20)
+        );
 
         $params = http_build_query([
             'client_id' => config('services.meta.app_id'),
@@ -49,15 +50,13 @@ class MetaPublicAuthController extends Controller
             return redirect()->route('meta.public.done')->with('error', 'Autorização cancelada/bloqueada pela Meta.');
         }
 
-        if (! $request->filled('state') || ! session()->has('meta_public_state')) {
-            return redirect()->route('meta.public.done')->with('error', 'Fluxo OAuth sem state válido. Gere um novo link de conexão.');
-        }
-
-        if ($request->state !== session('meta_public_state')) {
+        if (! $request->filled('state')) {
             return redirect()->route('meta.public.done')->with('error', 'State inválido no OAuth.');
         }
 
-        $tenantId = session('meta_public_tenant_id');
+        $state = (string) $request->state;
+        $flowData = Cache::get($this->stateCacheKey($state));
+        $tenantId = $flowData['tenant_id'] ?? null;
         abort_unless($tenantId, 403, 'Tenant não identificado.');
 
         $tokenResp = Http::get('https://graph.facebook.com/oauth/access_token', [
@@ -107,19 +106,26 @@ class MetaPublicAuthController extends Controller
             return redirect()->route('meta.public.done')->with('error', 'Nenhuma página encontrada.');
         }
 
-        session([
-            'meta_public_pages' => $pages,
-            'meta_public_expires_in' => $expiresIn,
-            'meta_public_user_id' => $metaUserId,
-        ]);
+        Cache::put(
+            $this->stateCacheKey($state),
+            [
+                'tenant_id' => $tenantId,
+                'pages' => $pages,
+                'expires_in' => $expiresIn,
+                'meta_user_id' => $metaUserId,
+            ],
+            now()->addMinutes(20)
+        );
 
-        return redirect()->route('meta.public.select-page');
+        return redirect()->route('meta.public.select-page', ['flow' => $state]);
     }
 
     public function selectPage(): View|RedirectResponse
     {
-        $pages = session('meta_public_pages', []);
-        $tenantId = session('meta_public_tenant_id');
+        $flow = request()->query('flow');
+        $flowData = is_string($flow) ? Cache::get($this->stateCacheKey($flow)) : null;
+        $pages = $flowData['pages'] ?? [];
+        $tenantId = $flowData['tenant_id'] ?? null;
 
         if (empty($pages) || ! $tenantId) {
             return redirect()->route('meta.public.done')->with('error', 'Sessão expirada.');
@@ -127,17 +133,20 @@ class MetaPublicAuthController extends Controller
 
         $tenant = Tenant::find($tenantId);
 
-        return view('public.meta-select-page', compact('pages', 'tenant'));
+        return view('public.meta-select-page', compact('pages', 'tenant', 'flow'));
     }
 
     public function savePage(Request $request): RedirectResponse
     {
         $request->validate([
             'page_id' => ['required', 'string'],
+            'flow' => ['required', 'string'],
         ]);
 
-        $tenantId = session('meta_public_tenant_id');
-        $pages = session('meta_public_pages', []);
+        $flow = (string) $request->input('flow');
+        $flowData = Cache::get($this->stateCacheKey($flow));
+        $tenantId = $flowData['tenant_id'] ?? null;
+        $pages = $flowData['pages'] ?? [];
         $selected = collect($pages)->firstWhere('id', $request->input('page_id'));
 
         if (! $tenantId || ! $selected) {
@@ -148,22 +157,16 @@ class MetaPublicAuthController extends Controller
             ['tenant_id' => $tenantId],
             [
                 'access_token' => $selected['access_token'],
-                'meta_user_id' => session('meta_public_user_id'),
+                'meta_user_id' => $flowData['meta_user_id'] ?? null,
                 'page_id' => $selected['id'],
                 'page_name' => $selected['name'],
                 'instagram_account_id' => $selected['instagram_business_account']['id'] ?? null,
-                'expires_at' => now()->addSeconds(session('meta_public_expires_in', 5184000)),
+                'expires_at' => now()->addSeconds($flowData['expires_in'] ?? 5184000),
             ]
         );
         $this->logGraphPayload('public.save_page.selected_page', $selected, ['id', 'name', 'access_token']);
 
-        session()->forget([
-            'meta_public_state',
-            'meta_public_tenant_id',
-            'meta_public_pages',
-            'meta_public_expires_in',
-            'meta_public_user_id',
-        ]);
+        Cache::forget($this->stateCacheKey($flow));
 
         return redirect()->route('meta.public.done')->with('success', 'Conta conectada com sucesso. Agora você pode fechar esta janela.');
     }
@@ -206,5 +209,10 @@ class MetaPublicAuthController extends Controller
         });
 
         return $payload;
+    }
+
+    private function stateCacheKey(string $state): string
+    {
+        return 'meta_public_oauth:' . $state;
     }
 }

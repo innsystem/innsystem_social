@@ -16,6 +16,7 @@
                     <p class="text-muted">Selecione a página que será conectada para o tenant <strong>{{ $tenant->name }}</strong>.</p>
                     <form method="POST" action="{{ route('meta.public.save-page') }}">
                         @csrf
+                        <input type="hidden" name="flow" value="{{ $flow }}">
                         <div class="list-group mb-3">
                             @foreach($pages as $page)
                                 <label class="list-group-item d-flex align-items-center gap-2">
