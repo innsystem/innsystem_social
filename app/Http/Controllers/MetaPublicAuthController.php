@@ -29,7 +29,6 @@ class MetaPublicAuthController extends Controller
             'client_id' => config('services.meta.app_id'),
             'redirect_uri' => route('meta.public.callback'),
             'scope' => implode(',', [
-                'pages_manage_posts',
                 'pages_read_engagement',
                 'instagram_basic',
                 'instagram_content_publish',
@@ -45,12 +44,16 @@ class MetaPublicAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
-        if ($request->state !== session('meta_public_state')) {
-            return redirect()->route('meta.public.done')->with('error', 'State inválido no OAuth.');
+        if ($request->has('error')) {
+            return redirect()->route('meta.public.done')->with('error', 'Autorização cancelada/bloqueada pela Meta.');
         }
 
-        if ($request->has('error')) {
-            return redirect()->route('meta.public.done')->with('error', 'Autorização cancelada.');
+        if (! $request->filled('state') || ! session()->has('meta_public_state')) {
+            return redirect()->route('meta.public.done')->with('error', 'Fluxo OAuth sem state válido. Gere um novo link de conexão.');
+        }
+
+        if ($request->state !== session('meta_public_state')) {
+            return redirect()->route('meta.public.done')->with('error', 'State inválido no OAuth.');
         }
 
         $tenantId = session('meta_public_tenant_id');

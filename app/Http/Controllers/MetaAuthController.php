@@ -21,7 +21,6 @@ class MetaAuthController extends Controller
             'client_id'     => config('services.meta.app_id'),
             'redirect_uri'  => config('services.meta.redirect_uri'),
             'scope'         => implode(',', [
-                'pages_manage_posts',
                 'pages_read_engagement',
                 'instagram_basic',
                 'instagram_content_publish',
@@ -41,14 +40,19 @@ class MetaAuthController extends Controller
      */
     public function callback(Request $request)
     {
+        if ($request->has('error')) {
+            return redirect()->route('meta.social.settings')
+                ->with('error', 'Autorização cancelada/bloqueada pela Meta: ' . ($request->error_description ?? 'erro OAuth'));
+        }
+
+        if (! $request->filled('state') || ! session()->has('meta_oauth_state')) {
+            return redirect()->route('meta.social.settings')
+                ->with('error', 'Fluxo OAuth sem state válido. Refaça a conexão a partir do botão do sistema.');
+        }
+
         if ($request->state !== session('meta_oauth_state')) {
             return redirect()->route('meta.social.settings')
                 ->with('error', 'Falha na verificação de segurança OAuth (state inválido).');
-        }
-
-        if ($request->has('error')) {
-            return redirect()->route('meta.social.settings')
-                ->with('error', 'Autorização cancelada: ' . $request->error_description);
         }
 
         // Trocar code por short-lived token

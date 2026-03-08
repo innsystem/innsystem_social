@@ -49,17 +49,11 @@ Route::post('/meta/webhook', [MetaWebhookController::class, 'handle'])->name('me
 | OAuth Público via Link Assinado (OpenCart)
 |--------------------------------------------------------------------------
 */
-Route::get('/connect/meta/{tenant}', [MetaPublicAuthController::class, 'redirect'])
-    ->middleware('signed')
-    ->name('meta.public.redirect');
-Route::get('/connect/meta/callback', [MetaPublicAuthController::class, 'callback'])
-    ->name('meta.public.callback');
-Route::get('/connect/meta/select-page', [MetaPublicAuthController::class, 'selectPage'])
-    ->name('meta.public.select-page');
-Route::post('/connect/meta/select-page', [MetaPublicAuthController::class, 'savePage'])
-    ->name('meta.public.save-page');
-Route::get('/connect/meta/done', [MetaPublicAuthController::class, 'done'])
-    ->name('meta.public.done');
+Route::get('/connect/meta/{tenant}', [MetaPublicAuthController::class, 'redirect'])->middleware('signed')->name('meta.public.redirect');
+Route::get('/connect/meta/callback', [MetaPublicAuthController::class, 'callback'])->name('meta.public.callback');
+Route::get('/connect/meta/select-page', [MetaPublicAuthController::class, 'selectPage'])->name('meta.public.select-page');
+Route::post('/connect/meta/select-page', [MetaPublicAuthController::class, 'savePage'])->name('meta.public.save-page');
+Route::get('/connect/meta/done', [MetaPublicAuthController::class, 'done'])->name('meta.public.done');
 
 /*
 |--------------------------------------------------------------------------
