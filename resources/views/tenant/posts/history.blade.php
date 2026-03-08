@@ -43,12 +43,8 @@
                                     <span class="badge badge-platform-instagram">
                                         <i class="bi bi-instagram me-1"></i>Instagram
                                     </span>
-                                @elseif($post->platform === 'facebook')
-                                    <span class="badge badge-platform-facebook">
-                                        <i class="bi bi-facebook me-1"></i>Facebook
-                                    </span>
                                 @else
-                                    <span class="badge bg-secondary">Ambos</span>
+                                    <span class="badge bg-secondary">Legado</span>
                                 @endif
                             </td>
                             <td>

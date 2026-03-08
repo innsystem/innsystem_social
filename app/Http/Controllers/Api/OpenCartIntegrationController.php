@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
-use App\Services\MetaFacebookService;
 use App\Services\MetaInstagramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +13,6 @@ class OpenCartIntegrationController extends Controller
 {
     public function __construct(
         private MetaInstagramService $instagramService,
-        private MetaFacebookService $facebookService,
     ) {
     }
 
@@ -31,9 +29,8 @@ class OpenCartIntegrationController extends Controller
                 'slug' => $tenant->slug,
             ],
             'connected' => (bool) $metaToken,
-            'facebook_connected' => (bool) ($metaToken?->page_id),
             'instagram_connected' => (bool) ($metaToken?->instagram_account_id),
-            'page_name' => $metaToken?->page_name,
+            'instagram_username' => $metaToken?->instagram_username,
         ]);
     }
 
@@ -63,14 +60,19 @@ class OpenCartIntegrationController extends Controller
             'external_product_id' => ['nullable', 'string', 'max:120'],
             'source_domain' => ['nullable', 'string', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
+            'price' => ['nullable', 'string', 'max:60'],
             'caption' => ['nullable', 'string', 'max:2200'],
             'image_url' => ['required', 'url', 'max:1000'],
             'product_url' => ['nullable', 'url', 'max:1000'],
             'platforms' => ['required', 'array', 'min:1'],
-            'platforms.*' => ['in:instagram,facebook'],
+            'platforms.*' => ['in:instagram'],
         ]);
 
         $caption = $data['caption'] ?? $data['title'];
+
+        if (! empty($data['price'])) {
+            $caption .= "\nPreco: " . $data['price'];
+        }
 
         if (! empty($data['product_url'])) {
             $caption .= "\n\n" . $data['product_url'];
@@ -87,10 +89,6 @@ class OpenCartIntegrationController extends Controller
 
         if (in_array('instagram', $data['platforms'], true)) {
             $results['instagram'] = $this->instagramService->publishProduct($tenant->id, $payload);
-        }
-
-        if (in_array('facebook', $data['platforms'], true)) {
-            $results['facebook'] = $this->facebookService->publishProduct($tenant->id, $payload);
         }
 
         $allSuccess = collect($results)->every(fn ($result) => ($result['success'] ?? false) === true);

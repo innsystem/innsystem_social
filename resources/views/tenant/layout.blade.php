@@ -21,31 +21,7 @@
         .nav-label  { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: #6c757d; padding: .5rem 1rem; margin-top: .75rem; }
         .card       { border: 0; border-radius: 1rem; box-shadow: 0 4px 20px rgba(15,23,42,.06); }
         .badge-platform-instagram { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
-        .badge-platform-facebook  { background: #1877f2; }
     </style>
-
-    
-    <script>
-    window.fbAsyncInit = function() {
-        FB.init({
-        appId      : '1614984229637742',
-        cookie     : true,
-        xfbml      : true,
-        version    : 'v25.0'
-        });
-        
-        FB.AppEvents.logPageView();   
-        
-    };
-
-    (function(d, s, id){
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) {return;}
-        js = d.createElement(s); js.id = id;
-        js.src = "https://connect.facebook.net/en_US/sdk.js";
-        fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
-    </script>
 
     @stack('head')
 </head>
@@ -64,9 +40,9 @@
             </div>
         @endif
 
-        <div class="nav-label">Redes Sociais</div>
+        <div class="nav-label">Instagram</div>
         <a href="{{ route('meta.social.settings') }}" class="d-flex align-items-center gap-2 px-3 py-2 {{ request()->routeIs('meta.social.*') ? 'active' : '' }}">
-            <i class="bi bi-share"></i> Redes Sociais
+            <i class="bi bi-instagram"></i> Instagram
         </a>
 
         <div class="nav-label">Integração</div>

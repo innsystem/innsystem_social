@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\MetaToken;
 use App\Models\SocialPost;
-use App\Services\MetaFacebookService;
 use App\Services\MetaInstagramService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -18,7 +17,6 @@ class SocialSettingsController extends Controller
 {
     public function __construct(
         private MetaInstagramService $instagramService,
-        private MetaFacebookService $facebookService,
     ) {
     }
 
@@ -29,11 +27,10 @@ class SocialSettingsController extends Controller
     {
         $tenantId  = auth()->user()->tenant_id;
         $metaToken = MetaToken::where('tenant_id', $tenantId)->first();
-        $pageProfile = null;
         $instagramProfile = null;
 
         if ($metaToken) {
-            [$pageProfile, $instagramProfile] = $this->fetchConnectedProfiles($metaToken);
+            $instagramProfile = $this->fetchInstagramProfile($metaToken);
         }
 
         $recentPosts = SocialPost::where('tenant_id', $tenantId)
@@ -42,14 +39,11 @@ class SocialSettingsController extends Controller
             ->get();
 
         $dailyInstagram = SocialPost::dailyCountForTenant($tenantId, 'instagram');
-        $dailyFacebook  = SocialPost::dailyCountForTenant($tenantId, 'facebook');
 
         return view('tenant.social.settings', compact(
             'metaToken',
             'recentPosts',
             'dailyInstagram',
-            'dailyFacebook',
-            'pageProfile',
             'instagramProfile'
         ));
     }
@@ -66,7 +60,7 @@ class SocialSettingsController extends Controller
         $data = $request->validate([
             'caption' => ['nullable', 'string', 'max:2200'],
             'platforms' => ['required', 'array', 'min:1'],
-            'platforms.*' => ['in:instagram,facebook'],
+            'platforms.*' => ['in:instagram'],
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif,bmp', 'max:10240'],
         ]);
 
@@ -104,10 +98,6 @@ class SocialSettingsController extends Controller
             $results['instagram'] = $this->instagramService->publishProduct($tenantId, $payload);
         }
 
-        if (in_array('facebook', $data['platforms'], true)) {
-            $results['facebook'] = $this->facebookService->publishProduct($tenantId, $payload);
-        }
-
         Log::info('Manual publish request finished', [
             'tenant_id' => $tenantId,
             'image_url' => $publicImageUrl,
@@ -126,29 +116,10 @@ class SocialSettingsController extends Controller
         return back()->with('error', 'Publicação concluída com falhas em uma ou mais plataformas. Verifique o histórico.');
     }
 
-    private function fetchConnectedProfiles(MetaToken $metaToken): array
+    private function fetchInstagramProfile(MetaToken $metaToken): ?array
     {
         $baseUrl = 'https://graph.facebook.com/' . config('services.meta.api_version', 'v25.0');
-        $pageProfile = null;
         $instagramProfile = null;
-
-        if (! empty($metaToken->page_id)) {
-            $pageResp = Http::get("{$baseUrl}/{$metaToken->page_id}", [
-                'fields' => 'id,name,picture{url},fan_count,followers_count,link,verification_status',
-                'access_token' => $metaToken->access_token,
-            ]);
-
-            $pageData = $pageResp->json() ?? [];
-            Log::info('Meta page profile fetched', [
-                'tenant_id' => $metaToken->tenant_id,
-                'success' => $pageResp->successful(),
-                'payload' => $pageData,
-            ]);
-
-            if ($pageResp->successful()) {
-                $pageProfile = $pageData;
-            }
-        }
 
         if (! empty($metaToken->instagram_account_id)) {
             $igResp = Http::get("{$baseUrl}/{$metaToken->instagram_account_id}", [
@@ -172,7 +143,7 @@ class SocialSettingsController extends Controller
             }
         }
 
-        return [$pageProfile, $instagramProfile];
+        return $instagramProfile;
     }
 
     private function convertImageToJpegAndStore(UploadedFile $file, int $tenantId): ?string
